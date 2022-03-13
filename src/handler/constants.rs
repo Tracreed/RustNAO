@@ -196,7 +196,13 @@ pub const MANGADEX: Source<'static> = Source {
 	rating_regex: Some(""),
 };
 
-pub const LIST_OF_SOURCES: [Source; 31] = [
+pub const EHENTAI: Source<'static> = Source {
+	index: 38,
+	name: "E-Hentai",
+	rating_regex: Some(""),
+};
+
+pub const LIST_OF_SOURCES: [Source; 32] = [
 	H_MAGAZINES,
 	H_GAME_CG,
 	DOUJINSHI_DB,
@@ -228,4 +234,5 @@ pub const LIST_OF_SOURCES: [Source; 31] = [
 	PAWOO_NET,
 	MADOKAMI,
 	MANGADEX,
+	EHENTAI
 ];

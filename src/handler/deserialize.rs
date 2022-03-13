@@ -16,6 +16,10 @@ pub struct Data {
 	#[serde(default)]
 	pub ext_urls: Vec<String>,
 	pub title: Option<String>,
+	pub source: String,
+	pub creator: Vec<String>,
+	pub eng_name: String,
+	pub jp_name: String,
 
 	#[serde(flatten, skip_serializing_if = "HashMap::is_empty")]
 	pub additional_fields: HashMap<String, serde_json::Value>,

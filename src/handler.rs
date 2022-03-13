@@ -522,6 +522,10 @@ impl Handler {
 										Ok(x) => Some(x),
 										Err(_x) => None,
 									},
+									sauce.data.source,
+									sauce.data.creator,
+									sauce.data.eng_name,
+									sauce.data.jp_name,
 								));
 							}
 							None => {
@@ -534,6 +538,10 @@ impl Handler {
 									sauce.header.similarity.parse().unwrap(),
 									sauce.header.thumbnail.to_string(),
 									None,
+									sauce.data.source,
+									sauce.data.creator,
+									sauce.data.eng_name,
+									sauce.data.jp_name,
 								));
 							}
 						}

@@ -26,6 +26,14 @@ pub struct Sauce {
 	pub thumbnail: String,
 	/// Any additional fields that are specific to the source
 	pub additional_fields: Option<serde_json::Value>,
+	/// source of the image if there is one.
+	pub source: String,
+	/// Who created the image
+	pub creator: Vec<String>,
+	/// Name in English/romanized
+	pub eng_name: String,
+	/// Original name in Japanese
+	pub jp_name: String,
 }
 
 // TODO: Consider making the sauce object a builder...
@@ -34,7 +42,7 @@ pub struct Sauce {
 #[allow(clippy::too_many_arguments)]
 pub(in crate::handler) fn new_sauce(
 	ext_urls: Vec<String>, title: Option<String>, site: String, index: u32, index_id: u32, similarity: f32, thumbnail: String,
-	additional_fields: Option<serde_json::Value>,
+	additional_fields: Option<serde_json::Value>, source: String, creator: Vec<String>, eng_name: String, jp_name: String,
 ) -> Sauce {
 	Sauce {
 		ext_urls,
@@ -45,6 +53,10 @@ pub(in crate::handler) fn new_sauce(
 		similarity,
 		thumbnail,
 		additional_fields,
+		source: source,
+		creator: creator,
+		eng_name: eng_name,
+		jp_name: jp_name,
 	}
 }
 
