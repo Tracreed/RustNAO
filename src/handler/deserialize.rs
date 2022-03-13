@@ -17,7 +17,7 @@ pub struct Data {
 	pub ext_urls: Vec<String>,
 	pub title: Option<String>,
 	pub source: Option<String>,
-	pub creator: Vec<String>,
+	pub creator: Option<Vec<String>>,
 	pub eng_name: Option<String>,
 	pub jp_name: Option<String>,
 
