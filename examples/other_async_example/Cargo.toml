@@ -1,9 +1,8 @@
 [package]
-name = "simple_async"
+name = "other_async_example"
 version = "0.1.0"
-authors = ["Clement Tsang"]
-edition = "2018"
+edition = "2021"
 
 [dependencies]
-async-std = "1.0.1"
 rustnao = { path = "../../" }
+tokio = { version = "1.0", features = ["full"] }

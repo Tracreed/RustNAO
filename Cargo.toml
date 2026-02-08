@@ -9,6 +9,8 @@ license = "MIT"
 description = "A modernized Rust implementation of a wrapper for the SauceNAO API."
 categories = ["api-bindings"]
 keywords = ["saucenao", "saucenao-api", "wrapper"]
+documentation = "https://docs.rs/rustnao/"
+exclude = [".github", "rustfmt.toml"]
 
 [dependencies]
 serde = { version = "1.0", features = ["derive"] }
@@ -19,3 +21,5 @@ thiserror = "1.0"
 
 [dev-dependencies]
 tokio = { version = "1.0", features = ["full"] }
+tokio-test = "0.4"
+dotenv = "0.15.0"

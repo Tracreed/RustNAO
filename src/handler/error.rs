@@ -1,4 +1,6 @@
 //! Error components for the library.
+//! Much thanks to Andrew Gallant for the basis of this part of the library... followed [the following
+//! code for this](https://github.com/BurntSushi/imdb-rename/blob/master/imdb-index/src/error.rs).
 
 use std::result;
 use thiserror::Error;
@@ -34,64 +36,38 @@ pub enum Error {
     InvalidParameters(String),
 }
 
-impl Error {
-	pub(crate) fn invalid_parse<T: AsRef<str>>(unk: T) -> Error {
-		Error::InvalidParse(unk.as_ref().to_string())
-	}
-
-	pub(crate) fn invalid_path<T: AsRef<str>>(unk: T) -> Error {
-		Error::InvalidFile(unk.as_ref().to_string())
-	}
-
-	pub(crate) fn invalid_serde<T: AsRef<str>>(unk: T) -> Error {
-		Error::InvalidSerde(unk.as_ref().to_string())
-	}
-
-	pub(crate) fn invalid_code(code: i32, message: String) -> Error {
-		Error::InvalidCode { code, message }
-	}
-
-	pub(crate) fn invalid_request<T: AsRef<str>>(unk: T) -> Error {
-		Error::InvalidRequest(unk.as_ref().to_string())
-	}
-
-	pub(crate) fn invalid_parameter(message: String) -> Error {
-		Error::InvalidParameters(message)
-	}
-}
-
 impl From<serde_json::Error> for Error {
-	fn from(err: serde_json::Error) -> Self {
-		Error::invalid_serde(err.to_string())
-	}
+    fn from(err: serde_json::Error) -> Self {
+        Error::InvalidSerde(err.to_string())
+    }
 }
 
 impl From<url::ParseError> for Error {
-	fn from(err: url::ParseError) -> Self {
-		Error::invalid_parse(err.to_string())
-	}
+    fn from(err: url::ParseError) -> Self {
+        Error::InvalidParse(err.to_string())
+    }
 }
 
 impl From<std::num::ParseIntError> for Error {
-	fn from(err: std::num::ParseIntError) -> Self {
-		Error::invalid_parse(err.to_string())
-	}
+    fn from(err: std::num::ParseIntError) -> Self {
+        Error::InvalidParse(err.to_string())
+    }
 }
 
 impl From<std::num::ParseFloatError> for Error {
-	fn from(err: std::num::ParseFloatError) -> Self {
-		Error::invalid_parse(err.to_string())
-	}
+    fn from(err: std::num::ParseFloatError) -> Self {
+        Error::InvalidParse(err.to_string())
+    }
 }
 
 impl From<std::io::Error> for Error {
-	fn from(err: std::io::Error) -> Self {
-		Error::invalid_path(err.to_string())
-	}
+    fn from(err: std::io::Error) -> Self {
+        Error::InvalidFile(err.to_string())
+    }
 }
 
 impl From<reqwest::Error> for Error {
-	fn from(err: reqwest::Error) -> Self {
-		Error::invalid_request(err.to_string())
-	}
+    fn from(err: reqwest::Error) -> Self {
+        Error::InvalidRequest(err.to_string())
+    }
 }
