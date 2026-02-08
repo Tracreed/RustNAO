@@ -1,7 +1,9 @@
 //! Handler module of rustnao.  The handler for the SauceNAO API calls.
 
 mod error;
-pub use error::{ErrType, Error, Result};
+pub use error::Error;
+/// A specialized Result type for rustnao.
+pub type Result<T> = error::Result<T>;
 
 mod constants;
 
@@ -11,8 +13,10 @@ pub use sauce::Sauce;
 mod deserialize;
 use deserialize::SauceResult;
 
-use std::cell::Cell;
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::Mutex;
 use url::Url;
+use reqwest::Client;
 
 /// A builder to create a Handler for RustNAO usage.
 /// ## Example
@@ -161,21 +165,10 @@ impl HandlerBuilder {
 	/// let handle = HandlerBuilder::default().api_key("your_api_key").db(999).num_results(50).build();
 	/// ```
 	pub fn build(&self) -> Handler {
-		let mut api_key = "";
-		match &self.api_key {
-			Some(x) => api_key = x.as_str(),
-			None => (),
-		}
+		let api_key = self.api_key.as_deref().unwrap_or("");
 
-		let mut testmode = None;
-		if let Some(x) = self.testmode {
-			testmode = if x { Some(1) } else { Some(0) };
-		}
-
-		let mut num_results = None;
-		if let Some(x) = self.num_results {
-			num_results = Some(x as u32);
-		}
+		let testmode = self.testmode.map(|x| if x { 1 } else { 0 });
+		let num_results = self.num_results;
 
 		let result = Handler::new(api_key, testmode, self.db_mask.clone(), self.db_mask_i.clone(), self.db, num_results);
 		if let Some(x) = self.min_similarity {
@@ -196,9 +189,11 @@ impl HandlerBuilder {
 /// ```
 /// use rustnao::HandlerBuilder;
 /// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-/// handle.get_sauce("https://i.imgur.com/W42kkKS.jpg", None, None);
+/// # tokio_test::block_on(async {
+/// handle.get_sauce("https://i.imgur.com/W42kkKS.jpg", None, None).await;
+/// # });
 /// ```
-#[derive(Debug, Clone)]
+#[derive(Debug)]
 pub struct Handler {
 	api_key: String,
 	output_type: i32,
@@ -207,12 +202,13 @@ pub struct Handler {
 	db_mask_i: Option<Vec<u32>>,
 	db: Option<u32>,
 	num_results: Option<u32>,
-	short_limit: Cell<u32>,
-	long_limit: Cell<u32>,
-	short_left: Cell<u32>,
-	long_left: Cell<u32>,
-	min_similarity: Cell<f64>,
-	empty_filter_enabled: Cell<bool>,
+	short_limit: AtomicU32,
+	long_limit: AtomicU32,
+	short_left: AtomicU32,
+	long_left: AtomicU32,
+	min_similarity: Mutex<f64>,
+	empty_filter_enabled: AtomicBool,
+    client: Client,
 }
 
 impl Handler {
@@ -281,16 +277,9 @@ impl Handler {
 
 	/// Grabs the appropriate Source data given an index
 	fn get_source(&self, index: u32) -> Option<constants::Source<'_>> {
-		let mut result: Option<constants::Source<'_>> = None;
-		for src in constants::LIST_OF_SOURCES.iter() {
-			if src.index == index {
-				result = Some(src.clone());
-			}
-		}
-		result
+		constants::LIST_OF_SOURCES.iter().find(|src| src.index == index).cloned()
 	}
 
-	// TODO: Test bitmask further!
 	/// Generates a bitmask from a given vector.
 	fn generate_bitmask(&self, mask: Vec<u32>) -> u32 {
 		let mut res: u32 = 0;
@@ -359,7 +348,7 @@ impl Handler {
 			request_url.query_pairs_mut().append_pair("url", image_path);
 		}
 
-		Ok(request_url.into_string())
+		Ok(request_url.to_string())
 	}
 
 	fn new(
@@ -373,12 +362,13 @@ impl Handler {
 			db_mask_i,
 			db,
 			num_results,
-			short_limit: Cell::new(12),
-			long_limit: Cell::new(200),
-			short_left: Cell::new(12),
-			long_left: Cell::new(200),
-			min_similarity: Cell::new(0.0),
-			empty_filter_enabled: Cell::new(false),
+			short_limit: AtomicU32::new(12),
+			long_limit: AtomicU32::new(200),
+			short_left: AtomicU32::new(12),
+			long_left: AtomicU32::new(200),
+			min_similarity: Mutex::new(0.0),
+			empty_filter_enabled: AtomicBool::new(false),
+            client: Client::new(),
 		}
 	}
 
@@ -393,7 +383,9 @@ impl Handler {
 	/// handle.set_min_similarity(50);
 	/// ```
 	pub fn set_min_similarity<T: Into<f64>>(&self, min_similarity: T) {
-		self.min_similarity.set(min_similarity.into());
+		if let Ok(mut lock) = self.min_similarity.lock() {
+            *lock = min_similarity.into();
+        }
 	}
 
 	/// Sets the whether empty URL results should be automatically filtered for ``get_sauce``.  
@@ -407,7 +399,7 @@ impl Handler {
 	/// handle.set_empty_filter(true);
 	/// ```
 	pub fn set_empty_filter(&self, enabled: bool) {
-		self.empty_filter_enabled.set(enabled);
+		self.empty_filter_enabled.store(enabled, Ordering::SeqCst);
 	}
 
 	/// Gets the current short limit as an i32.  By default this is 12.
@@ -419,7 +411,7 @@ impl Handler {
 	/// println!("{}", handle.get_short_limit());
 	/// ```
 	pub fn get_short_limit(&self) -> u32 {
-		self.short_limit.get()
+		self.short_limit.load(Ordering::SeqCst)
 	}
 
 	/// Gets the current long limit as an i32.  By default this is 200.
@@ -431,7 +423,7 @@ impl Handler {
 	/// println!("{}", handle.get_long_limit());
 	/// ```
 	pub fn get_long_limit(&self) -> u32 {
-		self.long_limit.get()
+		self.long_limit.load(Ordering::SeqCst)
 	}
 
 	/// Gets the current remaining short limit as an i32.
@@ -443,7 +435,7 @@ impl Handler {
 	/// println!("{}", handle.get_current_short_limit());
 	/// ```
 	pub fn get_current_short_limit(&self) -> u32 {
-		self.short_left.get()
+		self.short_left.load(Ordering::SeqCst)
 	}
 
 	/// Gets the current remaining long limit as an i32.
@@ -455,12 +447,12 @@ impl Handler {
 	/// println!("{}", handle.get_current_long_limit());
 	/// ```
 	pub fn get_current_long_limit(&self) -> u32 {
-		self.long_left.get()
+		self.long_left.load(Ordering::SeqCst)
 	}
 
 	fn is_valid_min_sim(&self, min_similarity: Option<f64>) -> bool {
 		if let Some(min_similarity) = min_similarity {
-			if min_similarity > 100.0 || min_similarity < 0.0 {
+			if !(0.0..=100.0).contains(&min_similarity) {
 				return false;
 			}
 		}
@@ -483,22 +475,18 @@ impl Handler {
 
 		if returned_sauce.header.status >= 0 {
 			// Update non-sauce fields
-			self.short_left.set(returned_sauce.header.short_remaining);
-			self.long_left.set(returned_sauce.header.long_remaining);
-			self.short_limit.set(returned_sauce.header.short_limit.parse()?);
-			self.long_limit.set(returned_sauce.header.long_limit.parse()?);
+			self.short_left.store(returned_sauce.header.short_remaining, Ordering::SeqCst);
+			self.long_left.store(returned_sauce.header.long_remaining, Ordering::SeqCst);
+			self.short_limit.store(returned_sauce.header.short_limit.parse()?, Ordering::SeqCst);
+			self.long_limit.store(returned_sauce.header.long_limit.parse()?, Ordering::SeqCst);
 
 			// Actual "returned" value:
 			if let Some(res) = returned_sauce.results {
-				let actual_min_sim: f64;
-				match min_similarity {
-					Some(min_sim) => actual_min_sim = min_sim,
-					None => actual_min_sim = self.min_similarity.get(),
-				}
+				let actual_min_sim = min_similarity.unwrap_or_else(|| *self.min_similarity.lock().unwrap());
 				for sauce in res {
 					let sauce_min_sim: f64 = sauce.header.similarity.parse()?;
 					if (sauce_min_sim >= actual_min_sim)
-						&& ((self.empty_filter_enabled.get() && !sauce.data.ext_urls.is_empty()) || !self.empty_filter_enabled.get())
+						&& ((self.empty_filter_enabled.load(Ordering::SeqCst) && !sauce.data.ext_urls.is_empty()) || !self.empty_filter_enabled.load(Ordering::SeqCst))
 					{
 						let actual_index: u32 = sauce.header.index_name.split(':').collect::<Vec<&str>>()[0]
 							.to_string()
@@ -550,7 +538,7 @@ impl Handler {
 			}
 			Ok(ret_sauce)
 		} else {
-			Err(Error::invalid_code(returned_sauce.header.status, returned_sauce.header.message))
+			Err(Error::InvalidCode { code: returned_sauce.header.status, message: returned_sauce.header.message })
 		}
 	}
 
@@ -560,42 +548,33 @@ impl Handler {
 	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initalized.  This can be at most 999.
 	/// * ``min_similarity`` - An Option containing a f64 to specify the minimum similarity you wish to meet for a result to show up for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initalized.
 	///
-	/// ## Example
-	/// ```
-	/// use rustnao::HandlerBuilder;
-	/// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-	/// handle.get_sauce("./tests/test.jpg", None, None);
-	/// ```
-	///
 	/// ## Errors
 	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
 	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub fn get_sauce(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<Vec<Sauce>> {
-		// This is essentially just a blocking version of the async call... thank you, code reuse
+	pub async fn get_sauce(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<Vec<Sauce>> {
+		if !self.is_valid_min_sim(min_similarity) {
+			return Err(Error::InvalidParameters(
+				"min_similarity must be less 100.0 and greater than 0.0.".to_string(),
+			));
+		} else if !self.is_valid_num_res(num_results) {
+			return Err(Error::InvalidParameters("num_results must be less than 999.".to_string()));
+		}
 
-		// TODO: Considering phasing this out, and also may need async versions of other helper functions... probably not though
-		async_std::task::block_on(async { self.async_get_sauce(image_path, num_results, min_similarity).await })
-	}
+		let url_string = self.generate_url(image_path, num_results)?;
 
-	/// Returns a string representing a vector of Sauce objects as a serialized JSON, or an error.  Otherwise identical to ``get_sauce(...)``
-	/// ## Arguments
-	/// * ``image_path`` - A string slice that contains the url of the image you wish to look up.
-	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
-	/// * ``min_similarity`` - An Option containing a f64 to specify the minimum similarity you wish to meet for a result to show up for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
-	///
-	/// ## Example
-	/// ```
-	/// use rustnao::HandlerBuilder;
-	/// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-	/// handle.get_sauce_as_pretty_json("https://i.imgur.com/W42kkKS.jpg", None, None);
-	/// ```
-	///
-	/// ## Errors
-	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
-	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub fn get_sauce_as_pretty_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
-		let ret_sauce = self.get_sauce(image_path, num_results, min_similarity)?;
-		Ok(serde_json::to_string_pretty(&ret_sauce)?)
+        let response = if !(image_path.starts_with("https://") || image_path.starts_with("http://")) {
+            let data = std::fs::read(image_path)?;
+            let file_name = std::path::Path::new(image_path).file_name().and_then(|n| n.to_str()).unwrap_or("image.jpg").to_string();
+            let part = reqwest::multipart::Part::bytes(data).file_name(file_name);
+            let form = reqwest::multipart::Form::new().part("file", part);
+            self.client.post(&url_string).multipart(form).send().await?
+        } else {
+            self.client.post(&url_string).send().await?
+        };
+
+        let returned_sauce: SauceResult = response.json().await?;
+
+		self.process_results(returned_sauce, min_similarity)
 	}
 
 	/// Returns a string representing a vector of Sauce objects as a serialized JSON, or an error.
@@ -604,53 +583,15 @@ impl Handler {
 	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
 	/// * ``min_similarity`` - An Option containing a f64 to specify the minimum similarity you wish to meet for a result to show up for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
 	///
-	/// ## Example
-	/// ```
-	/// use rustnao::HandlerBuilder;
-	/// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-	/// handle.get_sauce_as_json("https://i.imgur.com/W42kkKS.jpg", None, None);
-	/// ```
-	///
 	/// ## Errors
 	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
 	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub fn get_sauce_as_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
-		let ret_sauce = self.get_sauce(image_path, num_results, min_similarity)?;
+	pub async fn get_sauce_as_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
+		let ret_sauce = self.get_sauce(image_path, num_results, min_similarity).await?;
 		Ok(serde_json::to_string(&ret_sauce)?)
 	}
 
-	/// Asynchronously returns a Result of either a vector of Sauce objects, which contain potential sources for the input path, or a SauceError.
-	/// ## Arguments
-	/// * ``image_path`` - A string slice that contains the url of the image you wish to look up.
-	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initalized.  This can be at most 999.
-	/// * ``min_similarity`` - An Option containing a f64 to specify the minimum similarity you wish to meet for a result to show up for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initalized.
-	///
-	/// ## Errors
-	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
-	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub async fn async_get_sauce(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<Vec<Sauce>> {
-		// Check passed in values first to see if they're valid!
-
-		if !self.is_valid_min_sim(min_similarity) {
-			return Err(Error::invalid_parameter(
-				"min_similarity must be less 100.0 and greater than 0.0.".to_string(),
-			));
-		} else if !self.is_valid_num_res(num_results) {
-			return Err(Error::invalid_parameter("num_results must be less than 999.".to_string()));
-		}
-
-		let url_string = self.generate_url(image_path, num_results)?;
-
-		let returned_sauce: SauceResult = if !(image_path.starts_with("https://") || image_path.starts_with("http://")) {
-			surf::post(&url_string).body_file(image_path)?.await?.body_json().await?
-		} else {
-			surf::post(&url_string).await?.body_json().await?
-		};
-
-		self.process_results(returned_sauce, min_similarity)
-	}
-
-	/// Asynchronously returns a string representing a vector of Sauce objects as a serialized JSON, or an error.  Otherwise identical to ``async_get_sauce(...)``
+	/// Returns a string representing a vector of Sauce objects as a serialized JSON, or an error.
 	/// ## Arguments
 	/// * ``image_path`` - A string slice that contains the url of the image you wish to look up.
 	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
@@ -659,22 +600,8 @@ impl Handler {
 	/// ## Errors
 	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
 	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub async fn async_get_sauce_as_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
-		let ret_sauce = self.async_get_sauce(image_path, num_results, min_similarity).await?;
-		Ok(serde_json::to_string(&ret_sauce)?)
-	}
-
-	/// Asynchronously returns a string representing a vector of Sauce objects as a serialized JSON, or an error.  Otherwise identical to ``async_get_sauce(...)``
-	/// ## Arguments
-	/// * ``image_path`` - A string slice that contains the url of the image you wish to look up.
-	/// * ``num_results`` - An Option containing a u32 to specify the number of results you wish to get for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
-	/// * ``min_similarity`` - An Option containing a f64 to specify the minimum similarity you wish to meet for a result to show up for this specific search.  If this is None, it will default to whatever was originally set in the Handler when it was initialized.
-	///
-	/// ## Errors
-	/// If there was a problem forming a URL, reading a file, making a request, or parsing the returned JSON, an error will be returned.
-	/// Furthermore, if you pass a link in which SauceNAO returns an error code, an error containing the code and message will be returned.
-	pub async fn async_get_sauce_as_pretty_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
-		let ret_sauce = self.async_get_sauce(image_path, num_results, min_similarity).await?;
+	pub async fn get_sauce_as_pretty_json(&self, image_path: &str, num_results: Option<u32>, min_similarity: Option<f64>) -> Result<String> {
+		let ret_sauce = self.get_sauce(image_path, num_results, min_similarity).await?;
 		Ok(serde_json::to_string_pretty(&ret_sauce)?)
 	}
 }
@@ -685,10 +612,12 @@ impl Handler {
 /// ```
 /// use rustnao::{HandlerBuilder, ToJSON};
 /// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-/// let result = handle.get_sauce("./tests/test.jpg", None, None);
+/// # tokio_test::block_on(async {
+/// let result = handle.get_sauce("./tests/test.jpg", None, None).await;
 /// if result.is_ok() {
 /// 	result.unwrap().to_json_pretty();
 /// }
+/// # });
 /// ```
 pub trait ToJSON {
 	/// Converts to a Result containing a JSON string.
@@ -696,10 +625,12 @@ pub trait ToJSON {
 	/// ```
 	/// use rustnao::{HandlerBuilder, ToJSON};
 	/// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-	/// let result = handle.get_sauce("./tests/test.jpg", None, None);
+	/// # tokio_test::block_on(async {
+	/// let result = handle.get_sauce("./tests/test.jpg", None, None).await;
 	/// if result.is_ok() {
 	/// 	result.unwrap().to_json();
 	/// }
+	/// # });
 	/// ```
 	/// ### Errors
 	/// There may be a problem converting the object to a JSON string, so this will throw an Error if that is encountered.
@@ -710,10 +641,12 @@ pub trait ToJSON {
 	/// ```
 	/// use rustnao::{HandlerBuilder, ToJSON};
 	/// let handle = HandlerBuilder::default().api_key("your_api_key").num_results(999).db(999).build();
-	/// let result = handle.get_sauce("./tests/test.jpg", None, None);
+	/// # tokio_test::block_on(async {
+	/// let result = handle.get_sauce("./tests/test.jpg", None, None).await;
 	/// if result.is_ok() {
 	/// 	result.unwrap().to_json_pretty();
 	/// }
+	/// # });
 	/// ```
 	/// ### Errors
 	/// There may be a problem converting the object to a JSON string, so this will throw an Error if that is encountered.

@@ -1,20 +1,21 @@
 [package]
 name = "rustnao"
-version = "0.3.1"
-authors = ["Clement Tsang <clementjhtsang@gmail.com>"]
-edition = "2018"
+version = "0.4.0"
+authors = ["Clement Tsang <clementjhtsang@gmail.com>", "Tracreed <davidalasow@gmail.com>"]
+edition = "2021"
 readme = "README.md"
-repository = "https://github.com/ClementTsang/RustNAO"
+repository = "https://github.com/Tracreed/RustNAO"
 license = "MIT"
-description = "A Rust implementation of a wrapper for the SauceNAO API."
+description = "A modernized Rust implementation of a wrapper for the SauceNAO API."
 categories = ["api-bindings"]
 keywords = ["saucenao", "saucenao-api", "wrapper"]
-documentation = "https://docs.rs/rustnao/"
 
 [dependencies]
-serde = { version = "1.0.102", features = ["derive"] }
-surf = { version = "1.0", features = ["default"]}
-async-std = "1.0.1"
+serde = { version = "1.0", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json", "multipart", "rustls-tls"], default-features = false }
 serde_json = "1.0"
-url = "2.1.0"
-failure = "0.1.6"
+url = "2.5"
+thiserror = "1.0"
+
+[dev-dependencies]
+tokio = { version = "1.0", features = ["full"] }
