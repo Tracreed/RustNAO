@@ -1,241 +1,152 @@
-//! A list of constants used by the RustNAO library.
+//! A list of constants and the Source enum used by the RustNAO library.
 //! Constants are pulled from [here](https://saucenao.com/status.html).
 
 pub const API_URL: &str = "https://saucenao.com/search.php";
 
-/// A struct to represent a source.
-#[derive(Clone)]
-pub struct Source<'a> {
-    /// The index of the source.
-    pub index: u32,
-    /// The name of the source.
-    pub name: &'a str,
+/// A list of all available sources on SauceNAO.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash)]
+pub enum Source {
+    /// H-Magazines (index 0)
+    HMagazines = 0,
+    /// H-Game CG (index 2)
+    HGameCG = 2,
+    /// DoujinshiDB (index 3)
+    DoujinshiDB = 3,
+    /// Pixiv (index 5)
+    Pixiv = 5,
+    /// Nico Nico Seiga (index 8)
+    NicoNicoSeiga = 8,
+    /// Danbooru (index 9)
+    Danbooru = 9,
+    /// drawr Images (index 10)
+    Drawr = 10,
+    /// Nijie Images (index 11)
+    Nijie = 11,
+    /// Yand.ere (index 12)
+    Yandere = 12,
+    /// Shutterstock (index 15)
+    Shutterstock = 15,
+    /// Fakku (index 16)
+    Fakku = 16,
+    /// H-Misc (index 18)
+    HMisc = 18,
+    /// 2D-Market (index 19)
+    TwoDMarket = 19,
+    /// MediBang (index 20)
+    MediBang = 20,
+    /// Anime (index 21)
+    Anime = 21,
+    /// H-Anime (index 22)
+    HAnime = 22,
+    /// Movies (index 23)
+    Movies = 23,
+    /// Shows (index 24)
+    Shows = 24,
+    /// Gelbooru (index 25)
+    Gelbooru = 25,
+    /// Konachan (index 26)
+    Konachan = 26,
+    /// Sankaku Channel (index 27)
+    SankakuChannel = 27,
+    /// Anime-Pictures.net (index 28)
+    AnimePicturesNet = 28,
+    /// e621.net (index 29)
+    E621Net = 29,
+    /// Idol Complex (index 30)
+    IdolComplex = 30,
+    /// bcy.net Illust (index 31)
+    BcyNetIllust = 31,
+    /// bcy.net Cosplay (index 32)
+    BcyNetCosplay = 32,
+    /// PortalGraphics.net (index 33)
+    PortalGraphicsNet = 33,
+    /// deviantArt (index 34)
+    DeviantArt = 34,
+    /// Pawoo.net (index 35)
+    PawooNet = 35,
+    /// Madokami (index 36)
+    Madokami = 36,
+    /// MangaDex (index 37)
+    MangaDex = 37,
+    /// E-Hentai (index 38)
+    EHentai = 38,
 }
 
-/// Constant for H-Magazines.
-pub const H_MAGAZINES: Source<'static> = Source {
-    index: 0,
-    name: "H-Magazines",
-};
+impl Source {
+    /// Returns the name of the source as a string.
+    pub fn name(&self) -> &'static str {
+        match self {
+            Source::HMagazines => "H-Magazines",
+            Source::HGameCG => "H-Game CG",
+            Source::DoujinshiDB => "DoujinshiDB",
+            Source::Pixiv => "Pixiv",
+            Source::NicoNicoSeiga => "Nico Nico Seiga",
+            Source::Danbooru => "Danbooru",
+            Source::Drawr => "drawr Images",
+            Source::Nijie => "Nijie Images",
+            Source::Yandere => "Yande.re",
+            Source::Shutterstock => "Shutterstock",
+            Source::Fakku => "FAKKU",
+            Source::HMisc => "H-Misc",
+            Source::TwoDMarket => "2D-Market",
+            Source::MediBang => "MediBang",
+            Source::Anime => "Anime",
+            Source::HAnime => "H-Anime",
+            Source::Movies => "Movies",
+            Source::Shows => "Shows",
+            Source::Gelbooru => "Gelbooru",
+            Source::Konachan => "Konachan",
+            Source::SankakuChannel => "Sankaku Channel",
+            Source::AnimePicturesNet => "Anime-Pictures.net",
+            Source::E621Net => "e621.net",
+            Source::IdolComplex => "Idol Complex",
+            Source::BcyNetIllust => "bcy.net Illust",
+            Source::BcyNetCosplay => "bcy.net Cosplay",
+            Source::PortalGraphicsNet => "PortalGraphics.net",
+            Source::DeviantArt => "deviantArt",
+            Source::PawooNet => "Pawoo.net",
+            Source::Madokami => "Madokami",
+            Source::MangaDex => "MangaDex",
+            Source::EHentai => "E-Hentai",
+        }
+    }
 
-/// Constant for H-Game CG.
-pub const H_GAME_CG: Source<'static> = Source {
-    index: 2,
-    name: "H-Game CG",
-};
-
-/// Constant for DoujinshiDB.
-pub const DOUJINSHI_DB: Source<'static> = Source {
-    index: 3,
-    name: "DoujinshiDB",
-};
-
-/// Constant for Pixiv.
-pub const PIXIV: Source<'static> = Source {
-    index: 5,
-    name: "Pixiv",
-};
-
-/// Constant for Nico Nico Seiga.
-pub const NICO_NICO_SEIGA: Source<'static> = Source {
-    index: 8,
-    name: "Nico Nico Seiga",
-};
-
-/// Constant for Danbooru.
-pub const DANBOORU: Source<'static> = Source {
-    index: 9,
-    name: "Danbooru",
-};
-
-/// Constant for drawr Images.
-pub const DRAWR: Source<'static> = Source {
-    index: 10,
-    name: "drawr Images",
-};
-
-/// Constant for Nijie Images.
-pub const NIJIE: Source<'static> = Source {
-    index: 11,
-    name: "Nijie Images",
-};
-
-/// Constant for Yande.re.
-pub const YANDE_RE: Source<'static> = Source {
-    index: 12,
-    name: "Yande.re",
-};
-
-/// Constant for Shutterstock.
-pub const SHUTTERSTOCK: Source<'static> = Source {
-    index: 15,
-    name: "Shutterstock",
-};
-
-/// Constant for Fakku.
-pub const FAKKU: Source<'static> = Source {
-    index: 16,
-    name: "FAKKU",
-};
-
-/// Constant for H-Misc.
-pub const H_MISC: Source<'static> = Source {
-    index: 18,
-    name: "H-Misc",
-};
-
-/// Constant for 2D-Market.
-pub const TWO_D_MARKET: Source<'static> = Source {
-    index: 19,
-    name: "2D-Market",
-};
-
-/// Constant for MediBang.
-pub const MEDIBANG: Source<'static> = Source {
-    index: 20,
-    name: "MediBang",
-};
-
-/// Constant for Anime.
-pub const ANIME: Source<'static> = Source {
-    index: 21,
-    name: "Anime",
-};
-
-/// Constant for H-Anime.
-pub const H_ANIME: Source<'static> = Source {
-    index: 22,
-    name: "H-Anime ",
-};
-
-/// Constant for Movies.
-pub const MOVIES: Source<'static> = Source {
-    index: 23,
-    name: "Movies",
-};
-
-/// Constant for Shows.
-pub const SHOWS: Source<'static> = Source {
-    index: 24,
-    name: "Shows",
-};
-
-/// Constant for Gelbooru.
-pub const GELBOORU: Source<'static> = Source {
-    index: 25,
-    name: "Gelbooru",
-};
-
-/// Constant for Konachan.
-pub const KONACHAN: Source<'static> = Source {
-    index: 26,
-    name: "Konachan",
-};
-
-/// Constant for Sankaku Channel.
-pub const SANKAKU_CHANNEL: Source<'static> = Source {
-    index: 27,
-    name: "Sankaku Channel",
-};
-
-/// Constant for Anime-Pictures.net.
-pub const ANIME_PICTURES_NET: Source<'static> = Source {
-    index: 28,
-    name: "Anime-Pictures.net",
-};
-
-/// Constant for e621.net.
-pub const E621_NET: Source<'static> = Source {
-    index: 29,
-    name: "e621.net",
-};
-
-/// Constant for Idol Complex.
-pub const IDOL_COMPLEX: Source<'static> = Source {
-    index: 30,
-    name: "Idol Complex",
-};
-
-/// Constant for bcy.net Illust.
-pub const BCY_NET_ILLUST: Source<'static> = Source {
-    index: 31,
-    name: "bcy.net Illust",
-};
-
-/// Constant for bcy.net Cosplay.
-pub const BCY_NET_COSPLAY: Source<'static> = Source {
-    index: 32,
-    name: "bcy.net Cosplay",
-};
-
-/// Constant for PortalGraphics.net.
-pub const PORTALGRAPHICS_NET: Source<'static> = Source {
-    index: 33,
-    name: "PortalGraphics.net",
-};
-
-/// Constant for deviantArt.
-pub const DEVIANTART: Source<'static> = Source {
-    index: 34,
-    name: "deviantArt",
-};
-
-/// Constant for Pawoo.net.
-pub const PAWOO_NET: Source<'static> = Source {
-    index: 35,
-    name: "Pawoo.net",
-};
-
-/// Constant for Madokami.
-pub const MADOKAMI: Source<'static> = Source {
-    index: 36,
-    name: "Madokami",
-};
-
-/// Constant for MangaDex.
-pub const MANGADEX: Source<'static> = Source {
-    index: 37,
-    name: "MangaDex",
-};
-
-/// Constant for E-Hentai.
-pub const EHENTAI: Source<'static> = Source {
-    index: 38,
-    name: "E-Hentai",
-};
-
-/// List of all available sources.
-pub const LIST_OF_SOURCES: [Source; 32] = [
-    H_MAGAZINES,
-    H_GAME_CG,
-    DOUJINSHI_DB,
-    PIXIV,
-    NICO_NICO_SEIGA,
-    DANBOORU,
-    DRAWR,
-    NIJIE,
-    YANDE_RE,
-    SHUTTERSTOCK,
-    FAKKU,
-    H_MISC,
-    TWO_D_MARKET,
-    MEDIBANG,
-    ANIME,
-    H_ANIME,
-    MOVIES,
-    SHOWS,
-    GELBOORU,
-    KONACHAN,
-    SANKAKU_CHANNEL,
-    ANIME_PICTURES_NET,
-    E621_NET,
-    IDOL_COMPLEX,
-    BCY_NET_ILLUST,
-    BCY_NET_COSPLAY,
-    PORTALGRAPHICS_NET,
-    DEVIANTART,
-    PAWOO_NET,
-    MADOKAMI,
-    MANGADEX,
-    EHENTAI,
-];
+    /// Converts a u32 index to a Source enum.
+    pub fn from_u32(index: u32) -> Option<Self> {
+        match index {
+            0 => Some(Source::HMagazines),
+            2 => Some(Source::HGameCG),
+            3 => Some(Source::DoujinshiDB),
+            5 => Some(Source::Pixiv),
+            8 => Some(Source::NicoNicoSeiga),
+            9 => Some(Source::Danbooru),
+            10 => Some(Source::Drawr),
+            11 => Some(Source::Nijie),
+            12 => Some(Source::Yandere),
+            15 => Some(Source::Shutterstock),
+            16 => Some(Source::Fakku),
+            18 => Some(Source::HMisc),
+            19 => Some(Source::TwoDMarket),
+            20 => Some(Source::MediBang),
+            21 => Some(Source::Anime),
+            22 => Some(Source::HAnime),
+            23 => Some(Source::Movies),
+            24 => Some(Source::Shows),
+            25 => Some(Source::Gelbooru),
+            26 => Some(Source::Konachan),
+            27 => Some(Source::SankakuChannel),
+            28 => Some(Source::AnimePicturesNet),
+            29 => Some(Source::E621Net),
+            30 => Some(Source::IdolComplex),
+            31 => Some(Source::BcyNetIllust),
+            32 => Some(Source::BcyNetCosplay),
+            33 => Some(Source::PortalGraphicsNet),
+            34 => Some(Source::DeviantArt),
+            35 => Some(Source::PawooNet),
+            36 => Some(Source::Madokami),
+            37 => Some(Source::MangaDex),
+            38 => Some(Source::EHentai),
+            _ => None,
+        }
+    }
+}

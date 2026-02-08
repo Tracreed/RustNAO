@@ -1,10 +1,10 @@
-use rustnao::{Handler, HandlerBuilder};
+use rustnao::{Handler, HandlerBuilder, Source};
 
 fn main() {
     let handle = HandlerBuilder::default()
         .api_key("key")
         .num_results(999)
-        .db_mask(vec![Handler::PIXIV, Handler::SANKAKU_CHANNEL])
+        .db_mask(vec![Source::Pixiv, Source::SankakuChannel])
         .build();
 
     let file = "https://i.imgur.com/W42kkKS.jpg";

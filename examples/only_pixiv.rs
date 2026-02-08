@@ -1,6 +1,6 @@
 //! Similar to the simple example, except now we only want to get results from Pixiv
 
-use rustnao::{Handler, HandlerBuilder};
+use rustnao::{HandlerBuilder, Source};
 
 #[tokio::main]
 async fn main() {
@@ -9,7 +9,7 @@ async fn main() {
 
     let handle = HandlerBuilder::default()
         .api_key(api_key)
-        .db_mask(vec![Handler::PIXIV])
+        .db_mask(vec![Source::Pixiv])
         .build();
         
     match handle.get_sauce(file, None, None).await {

@@ -1,11 +1,11 @@
-use rustnao::{Handler, HandlerBuilder, Sauce};
+use rustnao::{Handler, HandlerBuilder, Sauce, Source};
 
 const FILE: &str = "https://i.imgur.com/W42kkKS.jpg";
 const LOCAL_FILE: &str = "./tests/test.jpg";
 
 /// Creates a handler for testing purposes
 fn create_handler(
-    dbmask: Vec<u32>, dbmaski: Vec<u32>, db_option: Option<u32>, numres: u32,
+    db_mask: Vec<Source>, db_mask_i: Vec<Source>, db_option: Option<u32>, numres: u32,
 ) -> Handler {
     let mut api_key = "".to_string();
 
@@ -20,33 +20,29 @@ fn create_handler(
         }
     }
 
-    match db_option {
-        Some(db) => HandlerBuilder::default()
-            .db_mask(dbmask)
-            .db_mask_i(dbmaski)
-            .db(db)
-            .num_results(numres)
-            .api_key(api_key.as_str())
-            .build(),
-        None => HandlerBuilder::default()
-            .db_mask(dbmask)
-            .db_mask_i(dbmaski)
-            .num_results(numres)
-            .api_key(api_key.as_str())
-            .build(),
+    let mut builder = HandlerBuilder::default();
+    builder.db_mask(db_mask)
+        .db_mask_i(db_mask_i)
+        .num_results(numres)
+        .api_key(api_key.as_str());
+
+    if let Some(db) = db_option {
+        builder.db(db);
     }
+
+    builder.build()
 }
 
 /// Tests handler creation
 #[test]
 fn test_check_handler_creation() {
-    create_handler([].to_vec(), [].to_vec(), Some(999), 999);
+    create_handler(vec![], vec![], Some(999), 999);
 }
 
 /// Tests short and long limit checks (which should change after a search)
 #[tokio::test]
 async fn test_get_short_and_long_limits() {
-    let handle = create_handler([].to_vec(), [].to_vec(), Some(999), 999);
+    let handle = create_handler(vec![], vec![], Some(999), 999);
     let cur_short_before = handle.get_current_short_limit();
     let cur_long_before = handle.get_current_long_limit();
     let result = handle.get_sauce(FILE, None, None).await;
@@ -59,7 +55,7 @@ async fn test_get_short_and_long_limits() {
 /// Tests searching for filtering empty sourced URLs
 #[tokio::test]
 async fn test_filter_empty_sauce() {
-    let handle = create_handler([].to_vec(), [].to_vec(), Some(999), 999);
+    let handle = create_handler(vec![], vec![], Some(999), 999);
     let vec: rustnao::Result<Vec<Sauce>> = handle.get_sauce(FILE, None, None).await;
     if let Ok(vec_unwrap) = vec {
         let only_empty: Vec<Sauce> = vec_unwrap
@@ -75,22 +71,18 @@ async fn test_filter_empty_sauce() {
 /// Tests local searching (local file)
 #[tokio::test]
 async fn test_local() {
-    let handle = create_handler([].to_vec(), [].to_vec(), Some(999), 2);
+    let handle = create_handler(vec![], vec![], Some(999), 2);
     let vec = handle.get_sauce_as_json(LOCAL_FILE, None, None).await;
     match vec {
         Ok(result) => println!("Passed, {}", result),
-        Err(result) => println!(
-            "
-         out, {}",
-            result
-        ),
+        Err(result) => println!("out, {}", result),
     }
 }
 
 /// Tests setting a max number of results
 #[tokio::test]
 async fn test_limiting() {
-    let handle = create_handler([].to_vec(), [].to_vec(), Some(999), 2);
+    let handle = create_handler(vec![], vec![], Some(999), 2);
     let vec = handle.get_sauce(FILE, None, None).await;
     if let Ok(vec_unwrap) = vec {
         assert!(vec_unwrap.len() <= 2);
@@ -100,7 +92,7 @@ async fn test_limiting() {
 /// Tests db bit masks
 #[tokio::test]
 async fn test_db_bit_mask() {
-    let handle = create_handler([27].to_vec(), [].to_vec(), None, 999);
+    let handle = create_handler(vec![Source::SankakuChannel], vec![], None, 999);
     let vec = handle.get_sauce(FILE, None, None).await;
     if let Ok(vec_unwrap) = vec {
         for v in vec_unwrap {
@@ -113,8 +105,20 @@ async fn test_db_bit_mask() {
 #[tokio::test]
 async fn test_db_bit_mask_i() {
     let handle = create_handler(
-        [].to_vec(),
-        [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10].to_vec(),
+        vec![],
+        vec![
+            Source::HMagazines,
+            Source::HGameCG,
+            Source::DoujinshiDB,
+            Source::Pixiv,
+            Source::NicoNicoSeiga,
+            Source::Danbooru,
+            Source::Drawr,
+            Source::Nijie,
+            Source::Yandere,
+            Source::Shutterstock,
+            Source::Fakku,
+        ],
         None,
         999,
     );
@@ -129,7 +133,7 @@ async fn test_db_bit_mask_i() {
 /// Tests min similarity and capping the number of results
 #[tokio::test]
 async fn test_min_similarity_and_num_results() {
-    let handle = create_handler([].to_vec(), [].to_vec(), Some(999), 2);
+    let handle = create_handler(vec![], vec![], Some(999), 2);
     let vec = handle.get_sauce(LOCAL_FILE, Some(5), Some(50_f64)).await;
     if let Ok(vec_unwrap) = vec {
         let res = vec_unwrap;

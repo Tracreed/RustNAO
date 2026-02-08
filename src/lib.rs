@@ -19,7 +19,7 @@
 //! Here's a simple example:
 //!
 //! ```no_run
-//! use rustnao::{Handler, HandlerBuilder, Sauce, Result};
+//! use rustnao::{Handler, HandlerBuilder, Sauce, Result, Source};
 //!
 //! #[tokio::main]
 //! async fn main() {
@@ -29,7 +29,7 @@
 //!     // Specifying our key, only want to see Pixiv and Sankaku using a mask, and 15 results at most.
 //!     let handle = HandlerBuilder::default()
 //!         .api_key(api_key)
-//!         .db_mask(vec![Handler::PIXIV, Handler::SANKAKU_CHANNEL])
+//!         .db_mask(vec![Source::Pixiv, Source::SankakuChannel])
 //!         .num_results(15)
 //!         .build();
 //!     
@@ -44,4 +44,4 @@
 #![deny(missing_docs)]
 
 mod handler;
-pub use handler::{Error, Handler, HandlerBuilder, Result, Sauce, ToJSON};
+pub use handler::{Error, Handler, HandlerBuilder, Result, Sauce, Source, ToJSON};

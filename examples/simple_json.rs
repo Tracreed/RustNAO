@@ -1,6 +1,6 @@
 //! Similar to the simple example, except now it's JSON
 
-use rustnao::{Handler, HandlerBuilder};
+use rustnao::{HandlerBuilder, Source};
 
 #[tokio::main]
 async fn main() {
@@ -11,7 +11,7 @@ async fn main() {
     let handle = HandlerBuilder::default()
         .api_key(api_key)
         .num_results(999)
-        .db_mask(vec![Handler::PIXIV, Handler::SANKAKU_CHANNEL])
+        .db_mask(vec![Source::Pixiv, Source::SankakuChannel])
         .build();
         
     match handle.get_sauce_as_pretty_json(file, None, None).await {
