@@ -68,8 +68,20 @@ pub enum Source {
     Madokami = 36,
     /// MangaDex (index 37)
     MangaDex = 37,
-    /// E-Hentai (index 38)
+    /// E-Hentai / H-Misc (index 38)
     EHentai = 38,
+    /// ArtStation (index 39)
+    ArtStation = 39,
+    /// FurAffinity (index 40)
+    FurAffinity = 40,
+    /// Twitter (index 41)
+    Twitter = 41,
+    /// Furry Network (index 42)
+    FurryNetwork = 42,
+    /// Kemono (index 43)
+    Kemono = 43,
+    /// Skeb (index 44)
+    Skeb = 44,
 }
 
 impl Source {
@@ -79,7 +91,7 @@ impl Source {
             Source::HMagazines => "H-Magazines",
             Source::HGameCG => "H-Game CG",
             Source::DoujinshiDB => "DoujinshiDB",
-            Source::Pixiv => "Pixiv",
+            Source::Pixiv => "pixiv Images",
             Source::NicoNicoSeiga => "Nico Nico Seiga",
             Source::Danbooru => "Danbooru",
             Source::Drawr => "drawr Images",
@@ -108,6 +120,12 @@ impl Source {
             Source::Madokami => "Madokami",
             Source::MangaDex => "MangaDex",
             Source::EHentai => "E-Hentai",
+            Source::ArtStation => "ArtStation",
+            Source::FurAffinity => "FurAffinity",
+            Source::Twitter => "Twitter",
+            Source::FurryNetwork => "Furry Network",
+            Source::Kemono => "Kemono",
+            Source::Skeb => "Skeb",
         }
     }
 
@@ -146,6 +164,12 @@ impl Source {
             36 => Some(Source::Madokami),
             37 => Some(Source::MangaDex),
             38 => Some(Source::EHentai),
+            39 => Some(Source::ArtStation),
+            40 => Some(Source::FurAffinity),
+            41 => Some(Source::Twitter),
+            42 => Some(Source::FurryNetwork),
+            43 => Some(Source::Kemono),
+            44 => Some(Source::Skeb),
             _ => None,
         }
     }
